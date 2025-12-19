@@ -7,7 +7,6 @@ A cross-platform desktop application built with Python and PyQt5 that prevents y
 - **Prevent System Sleep**: Uses system APIs to prevent sleep on Windows and Linux
 - **Activity Detection**: Monitors mouse and keyboard activity to detect user inactivity
 - **Smart Mouse Movement**: Automatically moves the mouse cursor when user is inactive to keep screen on
-- **Custom Cursor**: Load and use custom cursor images for a fun experience
 - **System Tray Support**: Minimize to system tray and control from there
 - **Cross-Platform**: Works on both Windows and Linux
 
@@ -59,9 +58,7 @@ python screen_keeper/main.py
    - When you become active again, stop moving the mouse
    - Optionally prevent system sleep using OS APIs
 
-4. **Custom Cursor**: Click "Load Custom Cursor Image" to use your own cursor image (PNG, JPG, ICO, etc.)
-
-5. **Minimize to Tray**: Close the window to minimize to system tray (if available)
+4. **Minimize to Tray**: Close the window to minimize to system tray (if available)
 
 ## Configuration
 
