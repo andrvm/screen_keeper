@@ -157,12 +157,12 @@ class MainWindow(QMainWindow):
         button_layout = QHBoxLayout()
         
         self.start_btn = QPushButton("Start")
-        self.start_btn.setStyleSheet("background-color: #4CAF50; color: white; font-weight: bold; padding: 10px;")
+        self.start_btn.setObjectName("start_btn")
         self.start_btn.clicked.connect(self.start_keeping)
         button_layout.addWidget(self.start_btn)
         
         self.stop_btn = QPushButton("Stop")
-        self.stop_btn.setStyleSheet("background-color: #f44336; color: white; font-weight: bold; padding: 10px;")
+        self.stop_btn.setObjectName("stop_btn")
         self.stop_btn.clicked.connect(self.stop_keeping)
         self.stop_btn.setEnabled(False)
         button_layout.addWidget(self.stop_btn)

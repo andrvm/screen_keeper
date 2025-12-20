@@ -62,8 +62,44 @@ QPushButton:disabled {
     color: #666666;
 }
 
-/* Specific Buttons - will be targeted by object name or dynamic property in code, 
-   but specific styles here for general classes */
+/* Specific Buttons */
+QPushButton#start_btn {
+    background-color: #4CAF50;
+    color: #ffffff;
+}
+
+QPushButton#start_btn:hover {
+    background-color: #45a049;
+}
+
+QPushButton#start_btn:pressed {
+    background-color: #388E3C;
+}
+
+QPushButton#start_btn:disabled {
+    background-color: #2d2d2d;
+    color: #666666;
+    border: 1px solid #3d3d3d;
+}
+
+QPushButton#stop_btn {
+    background-color: #f44336;
+    color: #ffffff;
+}
+
+QPushButton#stop_btn:hover {
+    background-color: #e53935;
+}
+
+QPushButton#stop_btn:pressed {
+    background-color: #d32f2f;
+}
+
+QPushButton#stop_btn:disabled {
+    background-color: #2d2d2d;
+    color: #666666;
+    border: 1px solid #3d3d3d;
+}
    
 /* Inputs */
 QSpinBox, QDoubleSpinBox {

@@ -51,9 +51,13 @@ class SleepPreventer:
             ES_SYSTEM_REQUIRED = 0x00000001
             ES_DISPLAY_REQUIRED = 0x00000002
             
-            ctypes.windll.kernel32.SetThreadExecutionState(
+            ret = ctypes.windll.kernel32.SetThreadExecutionState(
                 ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED
             )
+            if ret == 0:
+                print("SetThreadExecutionState failed")
+                return False
+                
             self._is_active = True
             return True
         except Exception as e:
