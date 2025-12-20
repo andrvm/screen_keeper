@@ -32,11 +32,17 @@ pyinstaller --name "screen-keeper" \
             run.py
 ```
 
+Or use the script `linux_build.sh`.
+
+```bash
+./linux_build.sh
+```
+
 After building, the executable will be located in the `dist` directory.
 
 ### Windows
 
-To build a standalone executable on Windows:
+To build a standalone executable on Windows (not tested yet):
 
 ```powershell
 pyinstaller --name "screen-keeper" `
@@ -49,5 +55,14 @@ pyinstaller --name "screen-keeper" `
 ```
 
 Note the difference in `--add-data` separator (`;` instead of `:`) and line continuation character (`` ` `` instead of `\`).
+
+Or build the .exe file in Linux using Docker (remove "optimize=0" from the spec file):
+
+```bash
+docker run --rm -v "$(pwd):/src/" cdrx/pyinstaller-windows
+```
+
+Add this param to the spec file to build the app with icon:
+* icon=['resources/icons/app.ico']
 
 After building, the executable will be located in the `dist` directory.

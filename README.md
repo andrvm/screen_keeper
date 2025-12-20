@@ -124,8 +124,6 @@ sudo pacman -S \
     libxkbcommon-x11
 ```
 
-See `INSTALL.md` for more detailed installation instructions.
-
 ### Windows Installation
 
 On Windows, the application should work out of the box after installing Python dependencies:
