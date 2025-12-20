@@ -19,6 +19,7 @@ from screen_keeper.core.sleep_preventer import SleepPreventer
 from screen_keeper.core.activity_monitor import ActivityMonitor
 from screen_keeper.core.mouse_mover import MouseMover
 from screen_keeper.config.settings import Settings
+from screen_keeper.gui.styles import DARK_THEME
 
 
 
@@ -55,15 +56,24 @@ class MainWindow(QMainWindow):
         # System tray
         self.setup_system_tray()
         
-        # Start minimized to tray
-        QTimer.singleShot(0, self.hide)
-        if hasattr(self, "tray_icon"):
-            self.tray_icon.showMessage(
-                "Screen Keeper",
-                "Application started minmized to tray",
-                QSystemTrayIcon.Information,
-                2000
-            )
+        # Menu Bar
+        self.setup_menu_bar()
+        
+        # Apply Styles
+        self.apply_styles()
+        
+        # Auto Start Logic
+        if self.settings.get("auto_start_keeping", True):
+            self.start_keeping()
+            # Minimize to tray if auto-started
+            QTimer.singleShot(0, self.hide)
+            if hasattr(self, "tray_icon"):
+                self.tray_icon.showMessage(
+                    "Screen Keeper",
+                    "Application started active and minimized to tray",
+                    QSystemTrayIcon.Information,
+                    2000
+                )
     
     def init_ui(self):
         """Initialize user interface."""
@@ -136,6 +146,10 @@ class MainWindow(QMainWindow):
         self.activity_detection_check.setChecked(True)
         settings_layout.addWidget(self.activity_detection_check)
         
+        self.auto_start_check = QCheckBox("Auto-start Active & Minimized")
+        self.auto_start_check.setToolTip("Automatically start keeping screen alive and minimize to tray on launch")
+        settings_layout.addWidget(self.auto_start_check)
+        
         settings_group.setLayout(settings_layout)
         layout.addWidget(settings_group)
         
@@ -204,8 +218,7 @@ class MainWindow(QMainWindow):
         self.movement_interval_spin.setValue(self.settings.get("mouse_movement_interval", 30.0))
         self.prevent_sleep_check.setChecked(self.settings.get("prevent_sleep", True))
         self.activity_detection_check.setChecked(self.settings.get("use_activity_detection", True))
-        
-        self.activity_detection_check.setChecked(self.settings.get("use_activity_detection", True))
+        self.auto_start_check.setChecked(self.settings.get("auto_start_keeping", True))
     
     def save_settings(self):
         """Save current UI settings."""
@@ -213,6 +226,7 @@ class MainWindow(QMainWindow):
         self.settings.set("mouse_movement_interval", self.movement_interval_spin.value())
         self.settings.set("prevent_sleep", self.prevent_sleep_check.isChecked())
         self.settings.set("use_activity_detection", self.activity_detection_check.isChecked())
+        self.settings.set("auto_start_keeping", self.auto_start_check.isChecked())
         self.settings.save()
     
     def start_keeping(self):
@@ -256,9 +270,20 @@ class MainWindow(QMainWindow):
                 return
         
         self.is_running = True
-        self.start_btn.setEnabled(False)
-        self.stop_btn.setEnabled(True)
+        self.update_ui_state()
         self.statusBar().showMessage("Screen Keeper is active")
+    
+    def update_ui_state(self):
+        """Update UI elements based on running state."""
+        self.start_btn.setEnabled(not self.is_running)
+        self.stop_btn.setEnabled(self.is_running)
+        
+        # Disable settings when running
+        self.inactivity_timeout_spin.setEnabled(not self.is_running)
+        self.movement_interval_spin.setEnabled(not self.is_running)
+        self.prevent_sleep_check.setEnabled(not self.is_running)
+        self.activity_detection_check.setEnabled(not self.is_running)
+        self.auto_start_check.setEnabled(not self.is_running)
     
     def stop_keeping(self):
         """Stop keeping screen alive."""
@@ -279,8 +304,7 @@ class MainWindow(QMainWindow):
         self.sleep_preventer.allow_sleep()
         
         self.is_running = False
-        self.start_btn.setEnabled(True)
-        self.stop_btn.setEnabled(False)
+        self.update_ui_state()
         self.statusBar().showMessage("Screen Keeper stopped")
     
     def on_user_inactive(self):
@@ -315,33 +339,78 @@ class MainWindow(QMainWindow):
             self.activity_label.setText("Activity: Not monitoring")
             self.activity_label.setStyleSheet("font-size: 12px; color: #666;")
     
+    
+    def setup_menu_bar(self):
+        """Setup application menu bar."""
+        menu_bar = self.menuBar()
+        
+        # File Menu
+        file_menu = menu_bar.addMenu("File")
+        
+        exit_action = QAction("Exit", self)
+        exit_action.setShortcut("Ctrl+Q")
+        exit_action.setStatusTip("Exit application")
+        exit_action.triggered.connect(self.close_application)
+        file_menu.addAction(exit_action)
+        
+        # Help Menu
+        help_menu = menu_bar.addMenu("Help")
+        
+        about_action = QAction("About", self)
+        about_action.setStatusTip("About Screen Keeper")
+        about_action.triggered.connect(self.show_about)
+        help_menu.addAction(about_action)
+    
+    def apply_styles(self):
+        """Apply modern dark theme."""
+        self.setStyleSheet(DARK_THEME)
+        
+        # Specific button styling if needed, but QSS handles most classes
+        pass
+
     def closeEvent(self, event):
         """Handle window close event."""
-        if self.is_running:
-            reply = QMessageBox.question(
+        # Clean up existing close logic to simpler "Minimize to Tray"
+        # The user requested: "The close icon must put the app in the tray."
+        
+        if self.tray_icon.isVisible():
+            QMessageBox.information(
                 self,
-                "Screen Keeper is Running",
-                "Screen Keeper is currently active. Do you want to stop it and exit?",
+                "Screen Keeper",
+                "The application will keep running in the system tray. To exit completely, use File -> Exit.",
+                QMessageBox.Ok
+            )
+            self.hide()
+            event.ignore()
+        else:
+            # If no tray, we must verify exit or just close
+             reply = QMessageBox.question(
+                self,
+                "Screen Keeper",
+                "Exit Screen Keeper?",
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.No
             )
-            
-            if reply == QMessageBox.Yes:
-                self.stop_keeping()
-                event.accept()
-            else:
-                event.ignore()
-                self.hide()
-                if hasattr(self, "tray_icon"):
-                    self.tray_icon.showMessage(
-                        "Screen Keeper",
-                        "Application minimized to system tray",
-                        QSystemTrayIcon.Information,
-                        2000
-                    )
-        else:
-            event.accept()
-    
+             if reply == QMessageBox.Yes:
+                 self.close_application()
+                 event.accept()
+             else:
+                 event.ignore()
+
+    def show_about(self):
+        """Show about dialog."""
+        QMessageBox.about(
+            self,
+            "About Screen Keeper",
+            "Screen Keeper v1.1\n\n"
+            "A tool to prevent your computer from going to sleep.\n\n"
+            "Features:\n"
+            "- Prevent System Sleep\n"
+            "- Activity Detection\n"
+            "- Smart Mouse Movement\n"
+            "- System Tray Support"
+        )
+
     def close_application(self):
         """Close application completely."""
         self.stop_keeping()

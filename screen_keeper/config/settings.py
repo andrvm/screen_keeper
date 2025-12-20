@@ -17,6 +17,7 @@ class Settings:
         "movement_distance": 1,  # pixels
         "prevent_sleep": True,
         "use_activity_detection": True,
+        "auto_start_keeping": True,
     }
     
     def __init__(self, config_file: Optional[str] = None):
