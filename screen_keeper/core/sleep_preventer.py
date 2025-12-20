@@ -5,6 +5,7 @@ Uses system APIs to prevent sleep on Windows and Linux.
 
 import platform
 import ctypes
+import threading
 from typing import Optional
 
 
@@ -15,6 +16,8 @@ class SleepPreventer:
         self.system = platform.system()
         self._handle: Optional[ctypes.c_void_p] = None
         self._is_active = False
+        self._timer: Optional[threading.Timer] = None
+        self._timer_interval = 30.0  # Reassert every 30 seconds
         
     def prevent_sleep(self, reason: str = "Screen Keeper") -> bool:
         """
@@ -51,18 +54,69 @@ class SleepPreventer:
             ES_SYSTEM_REQUIRED = 0x00000001
             ES_DISPLAY_REQUIRED = 0x00000002
             
+            # Set the execution state
             ret = ctypes.windll.kernel32.SetThreadExecutionState(
                 ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED
             )
             if ret == 0:
-                print("SetThreadExecutionState failed")
+                print("SetThreadExecutionState failed - return value is 0")
                 return False
-                
+            
+            print(f"SetThreadExecutionState succeeded - return value: {ret}")
             self._is_active = True
+            
+            # Start periodic reassertion timer for Windows 10/11 compatibility
+            self._start_reassertion_timer()
+            
             return True
         except Exception as e:
             print(f"Windows sleep prevention failed: {e}")
+            import traceback
+            traceback.print_exc()
             return False
+    
+    def _start_reassertion_timer(self):
+        """Start a timer to periodically reassert the execution state."""
+        if self.system != "Windows":
+            return
+            
+        # Cancel existing timer if any
+        if self._timer is not None:
+            self._timer.cancel()
+        
+        # Create and start new timer
+        self._timer = threading.Timer(self._timer_interval, self._reassert_execution_state)
+        self._timer.daemon = True
+        self._timer.start()
+        print(f"Started reassertion timer (interval: {self._timer_interval}s)")
+    
+    def _reassert_execution_state(self):
+        """Periodically reassert the execution state flags."""
+        if not self._is_active:
+            return
+        
+        try:
+            ES_CONTINUOUS = 0x80000000
+            ES_SYSTEM_REQUIRED = 0x00000001
+            ES_DISPLAY_REQUIRED = 0x00000002
+            
+            ret = ctypes.windll.kernel32.SetThreadExecutionState(
+                ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED
+            )
+            
+            if ret == 0:
+                print("WARNING: SetThreadExecutionState reassertion failed")
+            else:
+                print(f"SetThreadExecutionState reasserted successfully (return: {ret})")
+            
+            # Schedule next reassertion
+            if self._is_active:
+                self._start_reassertion_timer()
+                
+        except Exception as e:
+            print(f"Error during execution state reassertion: {e}")
+            import traceback
+            traceback.print_exc()
     
     def _prevent_sleep_linux(self, reason: str) -> bool:
         """Prevent sleep on Linux using systemd/logind via DBus."""
@@ -115,12 +169,27 @@ class SleepPreventer:
     def _allow_sleep_windows(self) -> bool:
         """Allow sleep on Windows."""
         try:
+            # Cancel the reassertion timer
+            if self._timer is not None:
+                self._timer.cancel()
+                self._timer = None
+                print("Cancelled reassertion timer")
+            
+            # Reset execution state to allow sleep
             ES_CONTINUOUS = 0x80000000
-            ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS)
+            ret = ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS)
+            
+            if ret == 0:
+                print("WARNING: SetThreadExecutionState reset failed")
+            else:
+                print(f"SetThreadExecutionState reset successfully (return: {ret})")
+            
             self._is_active = False
             return True
         except Exception as e:
             print(f"Windows sleep allowance failed: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     @property

@@ -59,7 +59,7 @@ Note the difference in `--add-data` separator (`;` instead of `:`) and line cont
 Or build the .exe file in Linux using Docker (remove "optimize=0" from the spec file):
 
 ```bash
-docker run --rm -v "$(pwd):/src/" cdrx/pyinstaller-windows
+docker run --rm -v "$(pwd):/src/" -v wine_home:/root/.wine cdrx/pyinstaller-windows
 ```
 
 Add this param to the spec file to build the app with icon:

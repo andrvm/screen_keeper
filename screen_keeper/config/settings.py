@@ -18,6 +18,7 @@ class Settings:
         "prevent_sleep": True,
         "use_activity_detection": True,
         "auto_start_keeping": True,
+        "simulation_mode": "both",  # mouse, keyboard, or both
     }
     
     def __init__(self, config_file: Optional[str] = None):

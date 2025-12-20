@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QLabel, QSpinBox, QDoubleSpinBox, QCheckBox,
     QMessageBox, QGroupBox, QStatusBar, QSystemTrayIcon, QMenu, QAction,
-    QApplication
+    QApplication, QComboBox
 )
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject
 from PyQt5.QtGui import QIcon
@@ -137,6 +137,24 @@ class MainWindow(QMainWindow):
         interval_layout.addWidget(self.movement_interval_spin)
         settings_layout.addLayout(interval_layout)
         
+        # Activity simulation mode
+        mode_layout = QHBoxLayout()
+        mode_layout.addWidget(QLabel("Activity Simulation:"))
+        self.simulation_mode_combo = QComboBox()
+        self.simulation_mode_combo.addItems([
+            "Mouse Movement",
+            "Keyboard Input",
+            "Both (Recommended)"
+        ])
+        self.simulation_mode_combo.setCurrentIndex(2)  # Default to "Both"
+        self.simulation_mode_combo.setToolTip(
+            "Mouse Movement: Move cursor slightly\n"
+            "Keyboard Input: Toggle Scroll Lock (for SecretNet)\n"
+            "Both: Use both methods for maximum compatibility"
+        )
+        mode_layout.addWidget(self.simulation_mode_combo)
+        settings_layout.addLayout(mode_layout)
+        
         # Checkboxes
         self.prevent_sleep_check = QCheckBox("Prevent System Sleep")
         self.prevent_sleep_check.setChecked(True)
@@ -219,6 +237,11 @@ class MainWindow(QMainWindow):
         self.prevent_sleep_check.setChecked(self.settings.get("prevent_sleep", True))
         self.activity_detection_check.setChecked(self.settings.get("use_activity_detection", True))
         self.auto_start_check.setChecked(self.settings.get("auto_start_keeping", True))
+        
+        # Load simulation mode
+        mode = self.settings.get("simulation_mode", "both")
+        mode_index = {"mouse": 0, "keyboard": 1, "both": 2}.get(mode, 2)
+        self.simulation_mode_combo.setCurrentIndex(mode_index)
     
     def save_settings(self):
         """Save current UI settings."""
@@ -227,6 +250,12 @@ class MainWindow(QMainWindow):
         self.settings.set("prevent_sleep", self.prevent_sleep_check.isChecked())
         self.settings.set("use_activity_detection", self.activity_detection_check.isChecked())
         self.settings.set("auto_start_keeping", self.auto_start_check.isChecked())
+        
+        # Save simulation mode
+        mode_index = self.simulation_mode_combo.currentIndex()
+        mode = ["mouse", "keyboard", "both"][mode_index]
+        self.settings.set("simulation_mode", mode)
+        
         self.settings.save()
     
     def start_keeping(self):
@@ -253,9 +282,12 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, "Warning", "Failed to start activity monitoring. Mouse will move continuously.")
                 self.activity_monitor = None
         
-        # Setup mouse mover
+        # Setup mouse mover with selected simulation mode
+        mode_index = self.simulation_mode_combo.currentIndex()
+        mode = ["mouse", "keyboard", "both"][mode_index]
         self.mouse_mover = MouseMover(
-            interval=self.movement_interval_spin.value()
+            interval=self.movement_interval_spin.value(),
+            mode=mode
         )
         
         # Start mouse mover based on activity detection
@@ -281,6 +313,7 @@ class MainWindow(QMainWindow):
         # Disable settings when running
         self.inactivity_timeout_spin.setEnabled(not self.is_running)
         self.movement_interval_spin.setEnabled(not self.is_running)
+        self.simulation_mode_combo.setEnabled(not self.is_running)
         self.prevent_sleep_check.setEnabled(not self.is_running)
         self.activity_detection_check.setEnabled(not self.is_running)
         self.auto_start_check.setEnabled(not self.is_running)
